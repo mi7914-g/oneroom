@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#1f4e46">
+<meta name="description" content="호실별 임대 정보, 월세 입금, 계약 및 퇴거 이력, 수리 내역을 관리하는 앱">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="원룸관리">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png">
+<link rel="apple-touch-icon" href="./icons/icon-192.png">
+<title>원룸 관리 플러스</title>
+<style>
+:root{--g:#1f4e46;--bg:#f3f6f4;--ink:#1d2925;--muted:#687570;--line:#e0e8e4;--red:#b64037;--redbg:#fff0ee;--greenbg:#edf7f2;--amber:#94651b}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Noto Sans KR",sans-serif}
+header{background:var(--g);color:white;padding:20px 17px 17px;position:sticky;top:0;z-index:2}h1{font-size:22px;margin:0 0 4px}.sub{font-size:12px;opacity:.82}
+main{max-width:780px;margin:auto;padding:14px 13px 90px}.monthbar{display:flex;align-items:center;gap:9px;margin:4px 0 12px}.monthbar input{max-width:180px}
+input,textarea,select,button{font:inherit}input,textarea,select{width:100%;padding:11px;border:1px solid #d5dfda;border-radius:10px;background:white;color:var(--ink)}label{display:block;font-size:12px;color:var(--muted);font-weight:700;margin:11px 0 5px}
+.stats{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}.stat{background:white;border:1px solid var(--line);border-radius:13px;padding:11px}.stat span{font-size:11px;color:var(--muted);display:block}.stat b{font-size:19px;display:block;margin-top:3px}.stat.red b{color:var(--red)}.stat.green b{color:var(--g)}
+.floor{margin:17px 0}.floor h2{font-size:15px;color:var(--g);margin:0 0 8px}.rooms{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.room{background:white;border:1px solid var(--line);border-radius:13px;padding:10px 9px;text-align:left;min-height:126px;cursor:pointer;position:relative}
+.room.unpaid{border:1.5px solid #e4a29d;background:var(--redbg)}.room.paid{border-color:#9bc7b4;background:var(--greenbg)}
+.room strong{font-size:17px;display:block}.tenant{font-size:12px;color:var(--muted);display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin:3px 0}
+.rentline{font-size:11px;color:var(--muted);margin-top:5px}.status{font-size:11px;font-weight:750;margin-top:7px}.unpaid .status{color:var(--red)}.paid .status{color:var(--g)}.vacant .status{color:var(--amber)}
+.pay{display:flex;align-items:center;gap:5px;font-size:11px;margin-top:7px;color:var(--ink)}.pay input{width:17px;height:17px;padding:0;margin:0;accent-color:var(--g)}
+button{border:0;border-radius:10px;padding:11px 13px;background:var(--g);color:white;font-weight:700;cursor:pointer}.secondary{background:#e6eeea;color:var(--g)}.danger{background:#fae9e7;color:var(--red)}
+.tools{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}.tools button{font-size:12px}
+.modal{display:none;position:fixed;inset:0;background:#0008;z-index:5;align-items:flex-end;justify-content:center}.modal.show{display:flex}
+.sheet{background:var(--bg);width:100%;max-width:780px;max-height:94dvh;overflow:auto;border-radius:20px 20px 0 0;padding:17px 15px calc(22px + env(safe-area-inset-bottom))}
+.head{display:flex;justify-content:space-between;align-items:center;position:sticky;top:-17px;background:var(--bg);padding:4px 0 12px;z-index:1}.head h2{font-size:20px;margin:0}.close{background:#e5ece8;color:var(--ink);padding:7px 11px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:9px}.actions{display:flex;gap:8px;margin-top:14px}.actions button{flex:1}
+.section{border-top:1px solid var(--line);margin-top:20px;padding-top:15px}.section h3{font-size:16px;margin:0 0 8px}.hint{font-size:11px;color:var(--muted);line-height:1.5}
+.history{background:white;border:1px solid var(--line);border-radius:12px;padding:11px;margin:8px 0}.history b{font-size:13px}.history p{font-size:13px;white-space:pre-wrap;margin:6px 0}.history small{color:var(--muted)}
+.empty{font-size:13px;color:var(--muted);padding:10px 0}.photo{display:flex;align-items:center;gap:9px;background:white;border:1px solid var(--line);border-radius:10px;padding:8px;margin:7px 0}.photo img{width:62px;height:62px;object-fit:cover;border-radius:7px}.photo .meta{flex:1;min-width:0;font-size:12px;overflow-wrap:anywhere}.footer-note{font-size:11px;color:var(--muted);line-height:1.5;margin-top:14px}
+@media(min-width:600px){.rooms{grid-template-columns:repeat(4,minmax(0,1fr))}.stats{grid-template-columns:repeat(4,1fr)}.modal{align-items:center}.sheet{border-radius:20px;max-height:90vh}}
+</style></head>
+<body>
+<header><h1>원룸 관리 플러스</h1><div class="sub">임대 현황 · 월세 수납 · 보증금 · 수리비 관리</div></header>
+<main>
+ <div class="monthbar"><input type="month" id="month"><span class="hint">선택한 달의 수납 현황</span></div>
+ <div id="floors"></div>
+ <div class="stats">
+  <div class="stat"><span>전체 호실</span><b id="total">14</b></div>
+  <div class="stat"><span>입주 호실</span><b id="occupied">0</b></div>
+  <div class="stat green"><span>이번 달 입금액</span><b id="received">0원</b></div>
+  <div class="stat red"><span>미납 월세 합계</span><b id="unpaid">0원</b></div>
+  <div class="stat"><span>예정 월세 합계</span><b id="expected">0원</b></div>
+  <div class="stat"><span>입금 확인</span><b id="paidCount">0/14</b></div>
+  <div class="stat"><span>누적 집수리 비용</span><b id="repairTotal">0원</b></div>
+  <div class="stat"><span>공실</span><b id="vacant">14</b></div>
+ </div>
+ <div class="section" style="background:white;border:1px solid var(--line);border-radius:13px;padding:12px;margin-top:12px">
+  <h3 style="margin:0 0 8px">관리 알림</h3>
+  <div id="alerts" class="hint">알림을 계산하고 있습니다.</div>
+ </div>
+ <div class="section" style="background:white;border:1px solid var(--line);border-radius:13px;padding:12px">
+  <h3 style="margin:0 0 8px">연간 월세 수입 현황</h3>
+  <label style="margin-top:0">조회 연도</label><input type="number" id="yearSelect" min="2000" max="2100" style="max-width:150px">
+  <div id="annualStats" class="hint" style="margin-top:8px"></div>
+ </div>
+
+ <div class="tools"><button class="secondary" id="exportBtn">데이터 백업</button><button class="secondary" id="importBtn">백업 불러오기</button><button class="secondary" id="csvBtn">엑셀용 내역 내보내기</button><input type="file" id="fileInput" accept="application/json" hidden></div>
+ <p class="footer-note">입력 내용은 이 휴대폰의 브라우저에 저장됩니다. 기기 변경이나 브라우저 데이터 삭제에 대비해 정기적으로 백업해 주세요.</p>
+</main>
+<div class="modal" id="modal"><div class="sheet">
+ <div class="head"><h2 id="roomTitle">호실 관리</h2><button class="close" id="closeBtn">닫기</button></div>
+ <div style="margin:0 0 12px"><button type="button" id="pickContact" class="secondary" style="width:100%">휴대폰 연락처에서 세입자 불러오기</button></div>
+ <div class="grid2">
+  <div><label>세입자 이름</label><input id="tenant" placeholder="공실이면 비워두세요"></div>
+  <div><label>연락처</label><input id="phone" type="tel" inputmode="tel" placeholder="010-0000-0000" style="width:100%;min-width:0"></div>
+  <div><label>입주 날짜</label><input id="movein" type="date"></div>
+  <div><label>계약 만료 예정일 (기본 1년)</label><input id="moveout" type="date"></div>
+  <div><label>보증금 (만원 단위)</label><input id="deposit" type="number" min="0" step="1" placeholder="예: 500"></div>
+  <div><label>월세 (만원 단위)</label><input id="rent" type="number" min="0" step="1" placeholder="예: 35"></div>
+  <div><label>월세 납부일 (입주일 기준 매월 자동 설정)</label><input id="dueDay" type="number" min="1" max="31" placeholder="입주일 입력 시 자동 설정"></div>
+ </div>
+ <div class="actions"><button id="saveTenant">임대 정보 저장</button><button class="danger" id="clearTenant">퇴거 처리</button></div><p class="hint">퇴거 처리하면 해당 퇴거 월부터 메인 화면은 공실로 표시되고, 이전 달의 세입자 정보는 월별 조회와 이전 세입자 기록에서 확인할 수 있습니다.</p>
+ <div class="section"><h3>이전 세입자 기록</h3><p class="hint">퇴거 처리한 세입자의 이름, 연락처, 계약 정보는 이곳에 보관됩니다.</p><div id="tenantHistoryList"></div></div>
+ <div class="section"><h3>월세 입금 확인</h3><p class="hint" id="paymentInfo">선택한 달의 월세 수납을 관리합니다.</p>
+  <label>입금 확인 월</label><input type="month" id="paymentMonth">
+  <div class="actions"><button id="markPaid">입금 완료 처리</button><button class="danger" id="markUnpaid">미입금으로 변경</button></div>
+ </div>
+ <div class="section"><h3>계약서 / 영수증 사진 보관</h3>
+  <p class="hint">사진은 이 휴대폰 브라우저 안에 저장됩니다. 사진이 많으면 저장 공간을 많이 사용할 수 있습니다.</p>
+  <label>사진 선택</label><input id="photoInput" type="file" accept="image/*" multiple>
+  <div id="photoList"></div>
+ </div>
+ <div class="section"><h3>집수리 내역</h3>
+  <label>수리 날짜</label><input id="repairDate" type="date">
+  <label>수리 항목</label><input id="repairTitle" placeholder="예: 싱크대 수전 교체">
+  <label>수리 내용 / 참고사항</label><textarea id="repairMemo" rows="3" placeholder="수리 내용, 교체 부품 등을 기록하세요."></textarea>
+  <label>수리 비용 (원)</label><input id="repairCost" type="number" min="0" step="1000" placeholder="예: 45000">
+  <div class="actions"><button id="addRepair">수리 내역 추가</button></div><div id="repairList"></div>
+ </div>
+</div></div>
+<script>
+const roomNumbers=[301,302,303,304,305,201,202,203,204,205,101,102,103,104],KEY='oneRoomManager_v1';
+let data={};try{data=JSON.parse(localStorage.getItem(KEY)||'{}')}catch(e){data={}}
+roomNumbers.forEach(n=>{let r=data[n]||{};data[n]={tenant:r.tenant||'',phone:r.phone||'',movein:r.movein||'',moveout:r.moveout||'',deposit:Number(r.deposit)||0,rent:Number(r.rent)||0,dueDay:r.dueDay||'',repairs:Array.isArray(r.repairs)?r.repairs:[],photos:Array.isArray(r.photos)?r.photos:[],payments:r.payments||{},tenantHistory:Array.isArray(r.tenantHistory)?r.tenantHistory:[]}});
+let activeRoom=null;const $=id=>document.getElementById(id),now=new Date(),ym=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+$('month').value=ym;
+function won(v){return (Number(v)||0).toLocaleString('ko-KR')+'원'}
+function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function save(){
+ try{localStorage.setItem(KEY,JSON.stringify(data));render();return true}
+ catch(err){alert('저장 공간이 부족하거나 브라우저 저장이 차단되어 저장하지 못했습니다. 사진 첨부 용량을 줄이거나 브라우저 설정을 확인해 주세요.');return false}
+}
+function isOccupied(r){return !!r.tenant.trim()}
+function tenantForMonth(r,month){
+ // 현재 세입자가 선택한 달에 이미 입주했다면 현재 세입자를 우선 표시합니다.
+ if(isOccupied(r)&&(!r.movein||r.movein.slice(0,7)<=month))return {
+  tenant:r.tenant,phone:r.phone,movein:r.movein,moveout:r.moveout,
+  deposit:r.deposit,rent:r.rent,dueDay:r.dueDay,current:true
+ };
+ // 퇴거 처리된 세입자는 퇴거한 달에는 공실, 그 이전 달에는 과거 입주자로 표시합니다.
+ const history=(r.tenantHistory||[]).slice().reverse();
+ return history.find(t=>t.tenant&&(!t.movein||t.movein.slice(0,7)<=month)&&t.checkoutDate&&t.checkoutDate.slice(0,7)>month) || null;
+}
+function isOccupiedForMonth(r,month){return !!tenantForMonth(r,month)}
+
+function daysInMonth(y,m){return new Date(y,m,0).getDate()}
+function dueIsLate(r,m){
+ if(!isOccupiedForMonth(r,m)||!r.dueDay||r.payments[m]?.paid)return false;
+ const [y,mo]=m.split('-').map(Number),today=new Date();
+ if(y<today.getFullYear()||(y===today.getFullYear()&&mo<today.getMonth()+1))return true;
+ if(y!==today.getFullYear()||mo!==today.getMonth()+1)return false;
+ return today.getDate()>Math.min(Number(r.dueDay),daysInMonth(y,mo));
+}
+function renderAlerts(){
+ const today=new Date(),soon=new Date(today);soon.setDate(today.getDate()+30);
+ const late=roomNumbers.filter(n=>dueIsLate(data[n],$('month').value||ym));
+ const expiring=roomNumbers.filter(n=>{let d=data[n].moveout;if(!isOccupiedForMonth(data[n],$('month').value||ym)||!d)return false;let x=new Date(d+'T00:00:00');return x>=new Date(today.toDateString())&&x<=soon});
+ let bits=[];
+ if(late.length)bits.push(`<b style="color:var(--red)">월세 납부일 경과 미납 ${late.length}개 호실:</b> ${late.map(n=>n+'호').join(', ')}`);
+ else bits.push('현재 선택한 달에 납부일이 지난 미납 호실이 없습니다.');
+ if(expiring.length)bits.push(`<b style="color:var(--amber)">30일 이내 퇴실 예정 ${expiring.length}개 호실:</b> ${expiring.map(n=>n+'호 ('+data[n].moveout+')').join(', ')}`);
+ else bits.push('30일 이내 퇴실 예정 호실이 없습니다.');
+ $('alerts').innerHTML=bits.join('<br>');
+}
+function renderAnnual(){
+ const y=Number($('yearSelect').value)||new Date().getFullYear();
+ let rows=[],sum=0;
+ for(let mo=1;mo<=12;mo++){let m=`${y}-${String(mo).padStart(2,'0')}`,v=roomNumbers.reduce((s,n)=>s+(data[n].payments[m]?.paid?(data[n].payments[m].amount??data[n].rent):0),0);sum+=v;rows.push(`${mo}월 ${won(v)}`)}
+ $('annualStats').innerHTML=`<b>연간 입금 합계: ${won(sum)}</b><div style="display:grid;grid-template-columns:repeat(2,1fr);gap:5px;margin-top:8px">${rows.map(x=>`<div>${x}</div>`).join('')}</div>`;
+}
+function render(){
+ let m=$('month').value||ym,occupied=roomNumbers.filter(n=>isOccupiedForMonth(data[n],m)),paid=occupied.filter(n=>data[n].payments[m]?.paid),expected=occupied.reduce((s,n)=>s+(tenantForMonth(data[n],m)?.rent||0),0),received=paid.reduce((s,n)=>s+(data[n].payments[m]?.amount??(tenantForMonth(data[n],m)?.rent||0)),0),unpaid=occupied.filter(n=>!data[n].payments[m]?.paid).reduce((s,n)=>s+(tenantForMonth(data[n],m)?.rent||0),0),repairs=roomNumbers.reduce((s,n)=>s+data[n].repairs.reduce((a,r)=>a+(Number(r.cost)||0),0),0);
+ $('total').textContent=roomNumbers.length;$('occupied').textContent=occupied.length;$('vacant').textContent=roomNumbers.length-occupied.length;$('expected').textContent=won(expected);$('received').textContent=won(received);$('unpaid').textContent=won(unpaid);$('paidCount').textContent=`${paid.length}/${occupied.length}`;$('repairTotal').textContent=won(repairs);
+ const groups=[['3층',roomNumbers.filter(n=>String(n)[0]==='3')],['2층',roomNumbers.filter(n=>String(n)[0]==='2')],['1층',roomNumbers.filter(n=>String(n)[0]==='1')]];
+ $('floors').innerHTML=groups.map(([f,ns])=>`<section class="floor"><h2>${f}</h2><div class="rooms">${ns.map(n=>{let r=data[n],t=tenantForMonth(r,m),occ=!!t,p=occ&&!!r.payments[m]?.paid,cls=!occ?'vacant':p?'paid':'unpaid';return `<div class="room ${cls}" data-room="${n}"><strong>${n}호</strong><span class="tenant">${esc(occ?t.tenant:'공실')}</span><div class="rentline">${occ?'월세 '+won(t.rent):'임대 정보 없음'}</div><div class="status">${!occ?'공실':p?'입금 완료':'월세 미납'}</div>${occ&&t.current?`<label class="pay"><input type="checkbox" data-pay="${n}" ${p?'checked':''}> 입금 확인</label>`:''}</div>`}).join('')}</div></section>`).join('');
+ document.querySelectorAll('[data-room]').forEach(el=>el.addEventListener('click',e=>{if(e.target.matches('[data-pay]'))return;openRoom(Number(el.dataset.room))}));
+ document.querySelectorAll('[data-pay]').forEach(el=>el.addEventListener('change',()=>{let r=data[el.dataset.pay];r.payments[m]={paid:el.checked,amount:r.rent,updatedAt:new Date().toISOString()};save()}));
+ renderAlerts();renderAnnual();
+}
+function todayLocal(){return formatDateLocal(new Date())}
+function formatDateLocal(d){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}
+function addOneYear(dateString){
+ if(!dateString)return '';
+ const [y,m,d]=dateString.split('-').map(Number);
+ const targetYear=y+1, lastDay=new Date(targetYear,m,0).getDate();
+ return `${targetYear}-${String(m).padStart(2,'0')}-${String(Math.min(d,lastDay)).padStart(2,'0')}`;
+}
+$('movein').addEventListener('change',()=>{
+ const v=$('movein').value;
+ if(!v)return;
+ $('moveout').value=addOneYear(v);
+ const day=Number(v.slice(8,10));
+ $('dueDay').value=day;
+});
+function openRoom(n){activeRoom=n;let r=data[n];$('roomTitle').textContent=n+'호 관리';$('tenant').value=r.tenant;$('phone').value=r.phone;$('movein').value=r.movein;$('moveout').value=r.moveout||addOneYear(r.movein);$('deposit').value=r.deposit?Math.round(r.deposit/10000):'';$('rent').value=r.rent?Math.round(r.rent/10000):'';$('dueDay').value=r.dueDay||(r.movein?Number(r.movein.slice(8,10)):'');$('paymentMonth').value=$('month').value||ym;$('repairDate').value=new Date().toISOString().slice(0,10);$('repairTitle').value='';$('repairMemo').value='';$('repairCost').value='';updatePaymentInfo();renderTenantHistory();renderRepairs();renderPhotos();$('modal').classList.add('show')}
+function updatePaymentInfo(){let r=data[activeRoom],m=$('paymentMonth').value||ym,p=r.payments[m]?.paid;$('paymentInfo').textContent=`${m} · 월세 ${won(r.rent)} · 납부일 매월 ${r.dueDay||'미설정'}일 · ${p?'입금 완료':'미입금'}`}
+function renderTenantHistory(){
+ const list=data[activeRoom].tenantHistory||[];
+ $('tenantHistoryList').innerHTML=list.length?list.slice().reverse().map(t=>`<div class="history"><b>${esc(t.tenant||'이름 미입력')}</b><p>연락처: ${esc(t.phone||'-')}<br>입주일: ${esc(t.movein||'-')}<br>퇴거일: ${esc(t.checkoutDate||'-')}<br>보증금: ${won(t.deposit)} · 월세: ${won(t.rent)}</p></div>`).join(''):'<div class="empty">퇴거 처리된 이전 세입자 기록이 없습니다.</div>';
+}
+function renderPhotos(){
+ const photos=data[activeRoom].photos||[];
+ $('photoList').innerHTML=photos.length?photos.map((p,i)=>`<div class="photo"><img src="${p.data}" alt="첨부 사진"><div class="meta">${esc(p.name)}<br><small>${esc(p.date||'')}</small></div><button class="danger" data-photo-del="${i}" style="padding:6px 9px;font-size:11px">삭제</button></div>`).join(''):'<div class="empty">첨부된 사진이 없습니다.</div>';
+ document.querySelectorAll('[data-photo-del]').forEach(b=>b.onclick=()=>{if(confirm('사진을 삭제할까요?')){data[activeRoom].photos.splice(Number(b.dataset.photoDel),1);localStorage.setItem(KEY,JSON.stringify(data));renderPhotos()}});
+}
+function renderRepairs(){let a=data[activeRoom].repairs;$('repairList').innerHTML=a.length?a.slice().reverse().map((r,i)=>`<div class="history"><small>${esc(r.date||'날짜 미입력')} · 수리비 ${won(r.cost)}</small><br><b>${esc(r.title||'수리 내역')}</b><p>${esc(r.memo||'')}</p><div style="text-align:right"><button class="danger" data-del="${a.length-1-i}" style="padding:6px 10px;font-size:11px">삭제</button></div></div>`).join(''):'<div class="empty">등록된 수리 내역이 없습니다.</div>';document.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{if(confirm('이 수리 내역을 삭제할까요?')){a.splice(Number(b.dataset.del),1);localStorage.setItem(KEY,JSON.stringify(data));renderRepairs();render()}})}
+
+$('pickContact').onclick=async()=>{
+ if(!('contacts' in navigator)&&!('ContactsManager' in window)){
+  alert('현재 브라우저에서는 연락처 불러오기를 지원하지 않습니다. 안드로이드 크롬 최신 버전에서 다시 시도하거나 연락처를 직접 입력해 주세요.');
+  return;
+ }
+ try{
+  const props=['name','tel'];
+  const picked=await navigator.contacts.select(props,{multiple:false});
+  if(picked&&picked.length){
+   const c=picked[0];
+   $('tenant').value=(c.name&&c.name[0])||$('tenant').value;
+   $('phone').value=(c.tel&&c.tel[0])||$('phone').value;
+  }
+ }catch(err){
+  if(err.name!=='AbortError') alert('연락처를 불러오지 못했습니다. 브라우저 권한과 지원 여부를 확인해 주세요.');
+ }
+};
+
+$('saveTenant').onclick=()=>{
+ let r=data[activeRoom],newTenant=$('tenant').value.trim(),movein=$('movein').value;
+ if(newTenant&&!movein){alert('세입자 정보를 저장하려면 입주 날짜를 먼저 입력해 주세요.');return}
+ if(newTenant&&movein>todayLocal()){alert('입주일 이전에는 세입자 정보를 저장할 수 없습니다. 실제 입주일 이후 다시 저장해 주세요.');return}
+ r.tenant=newTenant;r.phone=$('phone').value.trim();r.movein=movein;r.moveout=$('moveout').value||addOneYear(r.movein);r.deposit=Math.max(0,Number($('deposit').value)||0)*10000;r.rent=Math.max(0,Number($('rent').value)||0)*10000;r.dueDay=Math.min(31,Math.max(0,Number($('dueDay').value)||(r.movein?Number(r.movein.slice(8,10)):0)));if(!save())return;$('moveout').value=r.moveout;$('dueDay').value=r.dueDay||'';updatePaymentInfo();alert('임대 정보가 저장됐습니다.')};
+$('clearTenant').onclick=()=>{
+ let r=data[activeRoom];
+ if(!r.tenant.trim()){alert('현재 입주 중인 세입자 정보가 없습니다.');return}
+ const checkoutDate=$('moveout').value || r.moveout || todayLocal();
+ if(confirm(`현재 세입자 ${r.tenant}님을 계약만료일인 ${checkoutDate} 기준으로 퇴거 처리할까요? 세입자 정보는 이전 세입자 기록에 보관되며, 퇴거한 달부터 메인 화면에는 공실로 표시됩니다. 기존 월세 입금 기록과 집수리 내역은 보존됩니다.`)){
+  r.moveout=checkoutDate;
+  r.tenantHistory=r.tenantHistory||[];
+  r.tenantHistory.push({tenant:r.tenant,phone:r.phone,movein:r.movein,contractEnd:checkoutDate,deposit:r.deposit,rent:r.rent,dueDay:r.dueDay,checkoutDate});
+  Object.assign(r,{tenant:'',phone:'',movein:'',moveout:'',deposit:0,rent:0,dueDay:''});
+  if(!save())return;
+  $('tenant').value='';$('phone').value='';$('movein').value='';$('moveout').value='';$('deposit').value='';$('rent').value='';$('dueDay').value='';
+  updatePaymentInfo();renderTenantHistory();
+ }
+};
+$('paymentMonth').onchange=updatePaymentInfo;
+$('markPaid').onclick=()=>{let r=data[activeRoom],m=$('paymentMonth').value;if(!m){alert('입금 확인 월을 선택하세요.');return}r.payments[m]={paid:true,amount:r.rent,updatedAt:new Date().toISOString()};save();updatePaymentInfo()};
+$('markUnpaid').onclick=()=>{let r=data[activeRoom],m=$('paymentMonth').value;if(!m)return;r.payments[m]={paid:false,amount:0,updatedAt:new Date().toISOString()};save();updatePaymentInfo()};
+$('addRepair').onclick=()=>{let title=$('repairTitle').value.trim(),memo=$('repairMemo').value.trim();if(!title&&!memo){alert('수리 항목이나 내용을 입력해주세요.');return}data[activeRoom].repairs.push({date:$('repairDate').value,title,memo,cost:Math.max(0,Number($('repairCost').value)||0)});localStorage.setItem(KEY,JSON.stringify(data));$('repairTitle').value='';$('repairMemo').value='';$('repairCost').value='';renderRepairs();render()};
+$('photoInput').onchange=async e=>{
+ const files=Array.from(e.target.files||[]);
+ for(const f of files){
+  if(!f.type.startsWith('image/'))continue;
+  try{
+   const dataUrl=await new Promise((resolve,reject)=>{let rd=new FileReader();rd.onload=()=>resolve(rd.result);rd.onerror=reject;rd.readAsDataURL(f)});
+   data[activeRoom].photos.push({name:f.name,date:new Date().toLocaleDateString('ko-KR'),data:dataUrl});
+  }catch(err){alert('사진을 읽지 못했습니다.')}
+ }
+ try{localStorage.setItem(KEY,JSON.stringify(data));renderPhotos()}catch(err){alert('브라우저 저장 공간이 부족합니다. 사진을 줄이거나 백업 후 일부 사진을 삭제해 주세요.')}
+ e.target.value='';
+};
+$('csvBtn').onclick=()=>{
+ const rows=[['호실','세입자','연락처','입주일','퇴실예정일','보증금(원)','월세(원)','납부일','선택월','입금여부','입금액','수리누적비용']];
+ const m=$('month').value||ym;
+ roomNumbers.forEach(n=>{let r=data[n],pay=r.payments[m]||{},cost=r.repairs.reduce((s,x)=>s+(Number(x.cost)||0),0);rows.push([n,r.tenant,r.phone,r.movein,r.moveout,r.deposit,r.rent,r.dueDay,m,pay.paid?'입금완료':'미입금',pay.amount??'',cost])});
+ const csv='\\uFEFF'+rows.map(row=>row.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(',')).join('\\r\\n');
+ const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='원룸관리_호실별내역_'+m+'.csv';a.click();URL.revokeObjectURL(url);
+};
+$('yearSelect').value=new Date().getFullYear();$('yearSelect').onchange=renderAnnual;
+$('closeBtn').onclick=()=>$('modal').classList.remove('show');$('modal').onclick=e=>{if(e.target===$('modal'))$('modal').classList.remove('show')};$('month').onchange=render;
+$('exportBtn').onclick=()=>{let blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='원룸관리_백업_'+ym+'.json';a.click();URL.revokeObjectURL(url)};
+$('importBtn').onclick=()=>$('fileInput').click();$('fileInput').onchange=async e=>{let f=e.target.files[0];if(!f)return;try{let x=JSON.parse(await f.text());roomNumbers.forEach(n=>{if(x[n])data[n]={...data[n],...x[n]}});save();alert('백업 데이터를 불러왔습니다.')}catch(err){alert('백업 파일을 읽을 수 없습니다.')}e.target.value=''};
+render();
+// PWA: HTTPS 또는 localhost 환경에서 서비스 워커를 등록합니다.
+if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./service-worker.js').catch(err => console.warn('서비스 워커 등록 실패:', err));
+  });
+}
+</script></body></html>
